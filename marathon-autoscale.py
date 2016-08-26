@@ -67,7 +67,7 @@ class Marathon(object):
         json_data=json.dumps(data)
         headers = {'Content-type': 'application/json'}
         response=requests.put(self.uri + '/v2/apps/'+ marathon_app,json_data,headers=headers)
-        print ('Scale_app return status code =', response.status_code)
+        print ('Scale_out_app return status code =', response.status_code)
         
     def scale_down_app(self,marathon_app,autoscale_multiplier):
         target_instances_float=self.appinstances / autoscale_multiplier
@@ -81,7 +81,7 @@ class Marathon(object):
         json_data=json.dumps(data)
         headers = {'Content-type': 'application/json'}
         response=requests.put(self.uri + '/v2/apps/'+ marathon_app,json_data,headers=headers)
-        print ('Scale_app return status code =', response.status_code)
+        print ('Scale_down_app return status code =', response.status_code)
 
 def get_task_agentstatistics(task, host):
     # Get the performance Metrics for all the tasks for the Marathon App specified
