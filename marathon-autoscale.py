@@ -8,11 +8,16 @@ import time
 
 marathon_host = input("Enter the DNS hostname or IP of your Marathon Instance : ")
 marathon_app = input("Enter the Marathon Application Name to Configure Autoscale for from the Marathon UI : ")
-max_mem_percent = int(input("Enter the Max percent of Mem Usage averaged across all Application Instances to trigger Autoscale (ie. 80) : "))
-max_cpu_time = int(input("Enter the Max percent of CPU Usage averaged across all Application Instances to trigger Autoscale (ie. 80) : "))
-trigger_mode = input("Enter which metric(s) to trigger Autoscale ('and', 'or') : ")
+max_mem_percent = int(input("Enter the Max percent of Mem Usage averaged across all Application Instances to trigger Autoscale out(ie. 80) : "))
+max_cpu_time = int(input("Enter the Max percent of CPU Usage averaged across all Application Instances to trigger Autoscale out(ie. 80) : "))
+out_trigger_mode = input("Enter which metric(s) to trigger Autoscale out('and', 'or') : ")
+down_trigger_mode = input("Enter which metric(s) to trigger Autoscale down('and', 'or') : ")
 autoscale_multiplier = float(input("Enter Autoscale multiplier for triggered Autoscale (ie 1.5) : "))
 max_instances = int(input("Enter the Max instances that should ever exist for this application (ie. 20) : "))
+min_mem_percent = int(input("Enter the Min percent of Mem Usage averaged across all Application Instances to trigger Autoscale down(ie. 40) : "))
+min_cpu_time = int(input("Enter the Min percent of CPU Usage averaged across all Application Instances to trigger Autoscale down(ie. 40) : "))
+min_instances = int(input("Enter the Min instances that should ever less for this application (ie. 2) : "))
+check_sec = int(input("Enter the check second (ie. 30) : "))
 
 class Marathon(object):
 
@@ -50,12 +55,26 @@ class Marathon(object):
                 app_task_dict[str(taskid)] = str(hostid)
             return app_task_dict
 
-    def scale_app(self,marathon_app,autoscale_multiplier):
+    def scale_out_app(self,marathon_app,autoscale_multiplier):
         target_instances_float=self.appinstances * autoscale_multiplier
         target_instances=math.ceil(target_instances_float)
         if (target_instances > max_instances):
             print("Reached the set maximum instances of", max_instances)
             target_instances=max_instances
+        else:
+            target_instances=target_instances
+        data ={'instances': target_instances}
+        json_data=json.dumps(data)
+        headers = {'Content-type': 'application/json'}
+        response=requests.put(self.uri + '/v2/apps/'+ marathon_app,json_data,headers=headers)
+        print ('Scale_app return status code =', response.status_code)
+        
+    def scale_down_app(self,marathon_app,autoscale_multiplier):
+        target_instances_float=self.appinstances / autoscale_multiplier
+        target_instances=math.ceil(target_instances_float)
+        if (target_instances < min_instances):
+            print("Reached the set minmum instances of", min_instances)
+            target_instances=min_instances
         else:
             target_instances=target_instances
         data ={'instances': target_instances}
@@ -78,8 +97,8 @@ def get_task_agentstatistics(task, host):
             # print ('****Specific stats for task',executor_id,'=',task_stats)
             return task_stats
 def timer():
-    print("Successfully completed a cycle, sleeping for 30 seconds ...")
-    time.sleep(30)
+    print("Successfully completed a cycle, sleeping for ",check_sec," seconds...")
+    time.sleep(check_sec)
     return
 
 if __name__ == "__main__":
@@ -147,16 +166,29 @@ if __name__ == "__main__":
         print ('Current Average Mem Utilization for app', marathon_app,'=', app_avg_mem)
         #Evaluate whether an autoscale trigger is called for
         print('\n')
-        if (trigger_mode == "and"):
+        if (out_trigger_mode == "and"):
             if (app_avg_cpu > max_cpu_time) and (app_avg_mem > max_mem_percent):
-                print ("Autoscale triggered based on 'both' Mem & CPU exceeding threshold")
-                aws_marathon.scale_app(marathon_app, autoscale_multiplier)
+                print ("Autoscale out triggered based on 'both' Mem & CPU exceeding threshold")
+                aws_marathon.scale_out_app(marathon_app, autoscale_multiplier)
             else:
-                print ("Both values were not greater than autoscale targets")
-        elif (trigger_mode == "or"):
+                print ("Both values were not greater than autoscale up targets")
+        elif (out_trigger_mode == "or"):
             if (app_avg_cpu > max_cpu_time) or (app_avg_mem > max_mem_percent):
-                print ("Autoscale triggered based Mem 'or' CPU exceeding threshold")
-                aws_marathon.scale_app(marathon_app, autoscale_multiplier)
+                print ("Autoscale out triggered based Mem 'or' CPU exceeding threshold")
+                aws_marathon.scale_out_app(marathon_app, autoscale_multiplier)
+            else:
+                print ("Neither Mem 'or' CPU values exceeding threshold")
+        
+        if (down_trigger_mode == "and"):
+            if (app_avg_cpu < min_cpu_time) and (app_avg_mem < min_mem_percent):
+                print ("Autoscale out triggered based Mem 'or' CPU exceeding threshold")
+                aws_marathon.scale_out_app(marathon_app, autoscale_multiplier)
+            else:
+                print ("Neither Mem 'or' CPU values exceeding threshold")
+        elif(down_trgger_mode == "or"):
+            if (app_avg_cpu < min_cpu_time) or (app_avg_mem < min_mem_percent):
+                print ("Autoscale out triggered based Mem 'or' CPU exceeding threshold")
+                aws_marathon.scale_out_app(marathon_app, autoscale_multiplier)
             else:
                 print ("Neither Mem 'or' CPU values exceeding threshold")
         timer()
