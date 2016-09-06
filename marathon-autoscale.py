@@ -1,4 +1,5 @@
-__author__ = 'tkraus'
+#!/usr/bin/python
+__author__ = 'lavender'
 
 import sys
 import requests
@@ -6,18 +7,32 @@ import json
 import math
 import time
 
-marathon_host = input("Enter the DNS hostname or IP of your Marathon Instance : ")
-marathon_app = input("Enter the Marathon Application Name to Configure Autoscale for from the Marathon UI : ")
-max_mem_percent = int(input("Enter the Max percent of Mem Usage averaged across all Application Instances to trigger Autoscale out(ie. 80) : "))
-max_cpu_time = int(input("Enter the Max percent of CPU Usage averaged across all Application Instances to trigger Autoscale out(ie. 80) : "))
-out_trigger_mode = input("Enter which metric(s) to trigger Autoscale out('and', 'or') : ")
-down_trigger_mode = input("Enter which metric(s) to trigger Autoscale down('and', 'or') : ")
-autoscale_multiplier = float(input("Enter Autoscale multiplier for triggered Autoscale (ie 1.5) : "))
-max_instances = int(input("Enter the Max instances that should ever exist for this application (ie. 20) : "))
-min_mem_percent = int(input("Enter the Min percent of Mem Usage averaged across all Application Instances to trigger Autoscale down(ie. 40) : "))
-min_cpu_time = int(input("Enter the Min percent of CPU Usage averaged across all Application Instances to trigger Autoscale down(ie. 40) : "))
-min_instances = int(input("Enter the Min instances that should ever less for this application (ie. 2) : "))
-check_sec = int(input("Enter the check second (ie. 30) : "))
+#marathon_host = input("Enter the DNS hostname or IP of your Marathon Instance : ")
+#marathon_app = input("Enter the Marathon Application Name to Configure Autoscale for from the Marathon UI : ")
+#max_mem_percent = int(input("Enter the Max percent of Mem Usage averaged across all Application Instances to trigger Autoscale out(ie. 80) : "))
+#max_cpu_time = int(input("Enter the Max percent of CPU Usage averaged across all Application Instances to trigger Autoscale out(ie. 80) : "))
+#out_trigger_mode = input("Enter which metric(s) to trigger Autoscale out('and', 'or') : ")
+#down_trigger_mode = input("Enter which metric(s) to trigger Autoscale down('and', 'or') : ")
+#autoscale_multiplier = float(input("Enter Autoscale multiplier for triggered Autoscale (ie 1.5) : "))
+#max_instances = int(input("Enter the Max instances that should ever exist for this application (ie. 20) : "))
+#min_mem_percent = int(input("Enter the Min percent of Mem Usage averaged across all Application Instances to trigger Autoscale down(ie. 40) : "))
+#min_cpu_time = int(input("Enter the Min percent of CPU Usage averaged across all Application Instances to trigger Autoscale down(ie. 40) : "))
+#min_instances = int(input("Enter the Min instances that should ever less for this application (ie. 2) : "))
+#check_sec = int(input("Enter the check second (ie. 30) : "))
+
+marathon_host = '192.168.154.210'
+marathon_app = 'tools/nginx'  #http://marathon_host:8080/v2/apps
+max_mem_percent = 70
+max_cpu_time = 70
+out_trigger_mode = 'or'
+down_trigger_mode = 'or'
+autoscale_multiplier = 1.5
+max_instances = 8
+min_mem_percent = 30
+min_cpu_time = 30
+min_instances = 3
+check_sec = 30
+
 
 class Marathon(object):
 
@@ -182,13 +197,13 @@ if __name__ == "__main__":
         if (down_trigger_mode == "and"):
             if (app_avg_cpu < min_cpu_time) and (app_avg_mem < min_mem_percent):
                 print ("Autoscale out triggered based Mem 'or' CPU exceeding threshold")
-                aws_marathon.scale_out_app(marathon_app, autoscale_multiplier)
+                aws_marathon.scale_down_app(marathon_app, autoscale_multiplier)
             else:
                 print ("Neither Mem 'or' CPU values exceeding threshold")
-        elif(down_trgger_mode == "or"):
+        elif(down_trigger_mode == "or"):
             if (app_avg_cpu < min_cpu_time) or (app_avg_mem < min_mem_percent):
                 print ("Autoscale out triggered based Mem 'or' CPU exceeding threshold")
-                aws_marathon.scale_out_app(marathon_app, autoscale_multiplier)
+                aws_marathon.scale_down_app(marathon_app, autoscale_multiplier)
             else:
                 print ("Neither Mem 'or' CPU values exceeding threshold")
         timer()
